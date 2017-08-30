@@ -57,3 +57,53 @@ plt.plot(computed_time,cubic_results,'--',label='cubic',color='#00FA9A')
 plt.plot(computed_time,nearest_result,label='nearest',color='#FFC0CB')
 plt.legend(loc='upper right')
 plt.show()
+
+
+########################### 使用RBF进行插值 ###########################
+# 1-d example
+import numpy as np
+from scipy.interpolate import Rbf,InterpolatedUnivariateSpline
+import matplotlib.pyplot as plt
+
+x = np.linspace(0,10,9)
+print(x)
+y = np.sin(x)
+xi = np.linspace(0,10,1001)
+# use fitpack2 method
+ius = InterpolatedUnivariateSpline(x,y)
+yi = ius(xi)
+plt.subplot(2,1,1)
+plt.plot(x,y,'bo')
+plt.plot(xi,yi,'g')
+plt.plot(xi,np.sin(xi),'r')
+
+# use RBF
+rbf = Rbf(x,y)
+fi = rbf(xi)
+plt.subplot(2,1,2)
+plt.plot(x,y,'bo')
+plt.plot(xi,yi,'g')
+plt.plot(xi,np.sin(xi),'r')
+plt.show()
+
+# 2-D example
+import numpy as np
+import matplotlib.pyplot as plt
+from scipy.interpolate import Rbf
+from matplotlib import cm
+x = np.random.rand(100)*4-2
+y = np.random.rand(100)*4-2
+z = x*np.exp(-x**2-y**2)
+ti = np.linspace(-2,2,100)
+xi,yi = np.meshgrid(ti,ti)
+
+rbf = Rbf(x,y,z,epsilon=2)
+zi = rbf(xi,yi)
+
+plt.subplot()
+plt.pcolor(xi,yi,zi,cmap=cm.jet)
+plt.scatter(x,y,100,z,cmap=cm.jet)
+plt.xlim(-2,2)
+plt.ylim(-2,2)
+plt.colorbar()
+plt.show()
