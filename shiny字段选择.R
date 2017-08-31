@@ -47,3 +47,7 @@ server <- function(input, output) {
 }
 
 shinyApp(ui, server)
+
+
+# 解决中文编码的问题
+# 如果你使用RStudio编辑器，你可以从菜单File -> Save with Encoding选择UTF-8编码保存你的shiny应用文件，这样可以在代码中使用并显示中文。
