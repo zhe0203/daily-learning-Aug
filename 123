@@ -1,0 +1,102 @@
+# -*- coding: utf-8 -*-
+import pandas as pd
+import os
+import matplotlib.pyplot as plt
+import matplotlib
+from statsmodels.tsa.stattools import adfuller
+import statsmodels.tsa.stattools as st
+from statsmodels.graphics.tsaplots import plot_acf,plot_pacf
+from statsmodels.tsa.arima_model import ARIMA
+import numpy as np
+
+# 读取数据
+os.chdir(r'C:\Users\jk\Desktop\201901')
+df = pd.read_excel(r'arma_data.xlsx')
+dfTrain = df.iloc[:486,:]
+dfoot = df.iloc[486:,:]
+
+# 绘制原始序列变化趋势图
+matplotlib.rcParams['font.sans-serif'] = [u'SimHei']
+matplotlib.rcParams['axes.unicode_minus'] = False
+plt.figure(1,facecolor='white',edgecolor='red',figsize=(100,200))
+plt.ylabel('value',fontsize=16)
+plt.xlabel('index',fontsize=16)
+plt.title('变化趋势图',fontsize=22)
+# 下面对坐标轴进行设置
+ax = plt.gca()
+# 将右边和上边线的颜色设置为透明
+ax.spines['right'].set_color('none')
+ax.spines['top'].set_color('none')
+ax.xaxis.set_ticks_position('bottom')  # 将x轴的刻度设置在下面的坐标轴上
+ax.yaxis.set_ticks_position('left')    # 将y轴的刻度设置在左边的坐标轴上
+plt.plot(dfTrain['index'],dfTrain['value'],'r',alpha=0.9)
+plt.show()
+
+
+# 检验数据是否平稳
+def test_stationarity(timeseries):
+    dftest = adfuller(timeseries,autolag='AIC')
+    dfoutput = pd.Series(dftest[0:4], index=['Test Statistic', 'p-value',
+                                             '#Lags Used', 'Number of Observations Used'])
+    for key, value in dftest[4].items():
+        dfoutput['Critical Value (%s)' % key] = value
+    print(dfoutput)
+
+print(test_stationarity(dfTrain['value']))
+# 检验发现，原序列数据为平稳序列
+
+
+# 建立ARMA模型
+## 绘制原始序列自相关和偏自相关图
+### 自相关图
+plot_acf(dfTrain['value']).show()
+### 偏自相关图
+plot_pacf(dfTrain['value']).show()
+
+# 选择最优参数
+order = st.arma_order_select_ic(dfTrain['value'].values,max_ar=8,max_ma=8,
+                                ic=['aic','bic','hqic'])
+print(order.bic_min_order)  # (3, 2)
+
+# 建立ARMA模型
+p,d,q = 3,0,2  # 修改参数
+model = ARIMA(dfTrain['value'].values, order=(p,d,q))
+
+if d>0:
+    result_arma = model.fit(disp=-1)
+    result_arma.summary()
+    predict = list(result_arma.predict())   # 结果拟合
+    predict = [0]*d + predict
+    dfTrain['pred'] = predict
+    # 进行预测
+    fore = result_arma.forecast(31)[0]  # 结果预测
+    df['pred'] = list(dfTrain.pred) + list(fore)
+    df['forecast'] = list(df.iloc[:486,2] + df.iloc[:486,1]) + list(fore)
+
+else:
+    result_arma = model.fit(disp=0)
+    result_arma.summary()
+    predict = list(result_arma.predict())  # 结果拟合
+    dfTrain['pred'] = predict
+    # 进行预测
+    fore = result_arma.forecast(31)[0]  # 结果预测
+    df['forecast'] = list(dfTrain['pred']) + list(fore)
+
+
+# 绘制原始序列变化趋势图和预测结果图
+matplotlib.rcParams['font.sans-serif'] = [u'SimHei']
+matplotlib.rcParams['axes.unicode_minus'] = False
+plt.figure(1,facecolor='white',edgecolor='red',figsize=(100,200))
+plt.ylabel('value',fontsize=16)
+plt.xlabel('index',fontsize=16)
+plt.title('变化趋势图',fontsize=22)
+# 下面对坐标轴进行设置
+ax = plt.gca()
+# 将右边和上边线的颜色设置为透明
+ax.spines['right'].set_color('none')
+ax.spines['top'].set_color('none')
+ax.xaxis.set_ticks_position('bottom')  # 将x轴的刻度设置在下面的坐标轴上
+ax.yaxis.set_ticks_position('left')    # 将y轴的刻度设置在左边的坐标轴上
+plt.plot(df.iloc[486:,0],df.iloc[486:,1],'r',alpha=0.9)
+plt.plot(df.iloc[486:,0],df.iloc[486:,3],'b',alpha=0.9)
+plt.show()
